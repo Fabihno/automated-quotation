@@ -1,2 +1,5 @@
-install flask
-install PyPDF2
+gunicorn==23.0.0
+packaging==25.0
+flask
+pyPDF2
+reportlab
