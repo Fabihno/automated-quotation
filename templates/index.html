@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quotation Management Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            max-width: 90%;
+            max-height: 90vh;
+            overflow: auto;
+            position: relative;
+        }
+        .modal iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+        }
+        .items-container {
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 1rem;
+        }
+        .item-row {
+            min-width: 0;
+        }
+        .alert {
+            animation: fadeOut 5s forwards;
+        }
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; display: none; }
+        }
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <div class="min-h-screen flex flex-col">
+        <header class="bg-indigo-800 text-white py-6 px-6 shadow-md">
+            <div class="max-w-7xl mx-auto text-center">
+                <h1 class="text-3xl font-bold">Quotation Management Dashboard</h1>
+            </div>
+        </header>
+
+        <main class="flex-1 max-w-7xl mx-auto p-6">
+            <section class="mb-12">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-semibold text-indigo-800 mb-6 text-center">Create New Quotation</h2>
+
+                    <form method="POST" class="mb-8">
+                        <div class="flex flex-col sm:flex-row items-center max-w-lg mx-auto space-y-3 sm:space-y-0 sm:space-x-3">
+                            <input type="text" id="search_quotation_no" name="search_quotation_no" placeholder="Search by Quotation No (e.g., Q-123)" value="{{ search_quotation_no }}" class="flex-1 border border-gray-300 rounded-lg py-2 px-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm" aria-label="Search quotations by number">
+                            <input type="text" id="search_rep" name="search_rep" placeholder="Search by Representative" value="{{ search_rep }}" class="flex-1 border border-gray-300 rounded-lg py-2 px-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm" aria-label="Search quotations by representative">
+                            <button type="submit" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-200">Search</button>
+                        </div>
+                    </form>
+
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-lg max-w-lg mx-auto text-sm">
+                                    {{ message }}
+                                    <button onclick="this.parentElement.remove()" class="float-right text-green-900 hover:text-green-700">&times;</button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    {% if errors %}
+                        <div class="alert bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg max-w-lg mx-auto text-sm">
+                            <ul class="list-disc pl-5">
+                                {% for error in errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                            <button onclick="this.parentElement.remove()" class="float-right text-red-900 hover:text-red-700">&times;</button>
+                        </div>
+                    {% endif %}
+                    {% if search_errors %}
+                        <div class="alert bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded-lg max-w-lg mx-auto text-sm">
+                            <ul class="list-disc pl-5">
+                                {% for error in search_errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                            <button onclick="this.parentElement.remove()" class="float-right text-yellow-900 hover:text-yellow-700">&times;</button>
+                        </div>
+                    {% endif %}
+
+                    <form method="POST" action="/" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                            <div>
+                                <label for="client_name" class="block text-sm font-medium text-gray-700">Client Name</label>
+                                <input type="text" id="client_name" name="client_name" value="{{ quotation_data.client_name }}" required class="mt-1 block w-full border border-gray-300 rounded-lg py-2 px-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm" aria-required="true">
+                            </div>
+                            <div>
+                                <label for="rep" class="block text-sm font-medium text-gray-700">Representative</label>
+                                <input type="text" id="rep" name="rep" value="{{ quotation_data.rep }}" required class="mt-1 block w-full border border-gray-300 rounded-lg py-2 px-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm" aria-required="true">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 text-center">Quotation Number</label>
+                            <p class="mt-1 text-gray-500 text-center text-sm">{{ quotation_data.quotation_no or 'Will be autogenerated' }}</p>
+                        </div>
+
+                        <div class="items-container">
+                            <div id="items" class="space-y-4">
+                                {% if quotation_data.quote_items %}
+                                    {% for item in quotation_data.quote_items %}
+                                        <div class="item-row grid grid-cols-1 md:grid-cols-[auto,auto,auto,auto] gap-2">
+                                            <input type="number" name="quantity[]" value="{{ item.quantity }}" placeholder="Qty" min="1" required class="text-sm py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-20" aria-label="Quantity" aria-required="true">
+                                            <input type="number" name="rate[]" value="{{ item.rate }}" placeholder="Rate" step="0.01" required class="text-sm py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-24" aria-label="Rate" aria-required="true">
+                                            <input type="number" name="amount[]" value="{{ item.amount }}" placeholder="Amount" step="0.01" required class="text-sm py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-24" aria-label="Amount" aria-required="true">
+                                            <input type="number" name="vat[]" value="{{ item.vat }}" placeholder="VAT (%)" step="0.01" class="text-sm py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-20" aria-label="VAT percentage">
+                                            <button type="button" onclick="this.parentNode.remove()" class="bg-red-600 text-white text-sm py-2 px-2 rounded-lg hover:bg-red-700 transition duration-200 w-10" aria-label="Remove item row">X</button>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="item-row grid grid-cols-1 md:grid-cols-[auto,auto,auto,auto] gap-2">
+                                        <input type="number" name="quantity[]" placeholder="Qty" min="1" required class="text-sm py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-20" aria-label="Quantity" aria-required="true">
+                                        <input type="number" name="rate[]" placeholder="Rate" step="0.01" required class="text-sm py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-24" aria-label="Rate" aria-required="true">
+                                        <input type="number" name="amount[]" placeholder="Amount" step="0.01" required class="text-sm py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-24" aria-label="Amount" aria-required="true">
+                                        <input type="number" name="vat[]" placeholder="VAT (%)" step="0.01" class="text-sm py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-20" aria-label="VAT percentage">
+                                        <button type="button" onclick="this.parentNode.remove()" class="bg-red-600 text-white text-sm py-2 px-2 rounded-lg hover:bg-red-700 transition duration-200 w-10" aria-label="Remove item row">X</button>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="flex justify-center space-x-4">
+                            <button type="button" onclick="addItemRow()" class="bg-indigo-600 text-white text-sm py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-200">Add Item</button>
+                            <button type="submit" class="bg-green-600 text-white text-sm py-2 px-4 rounded-lg hover:bg-green-700 transition duration-200">Generate Quotation</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <section>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Generated Quotations</h2>
+                    {% if quotation_files %}
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {% for file in quotation_files %}
+                                <div class="border border-gray-200 rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-all duration-200">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <div class="flex items-center gap-2">
+                                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m2 8H7a2 2 0 01-2-2V6a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z"/>
+                                            </svg>
+                                            <span class="text-sm font-medium text-gray-800 truncate">{{ file.file }}</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <button onclick="openPdfModal('{{ file.url }}')" title="View PDF" class="text-indigo-600 hover:text-indigo-800" aria-label="View PDF">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                                </svg>
+                                            </button>
+                                            <button onclick="initiateDownload('{{ file.url }}')" title="Download PDF" class="text-green-600 hover:text-green-800" aria-label="Download PDF">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-gray-600 text-sm">No quotations found.</p>
+                    {% endif %}
+                </div>
+            </section>
+        </main>
+
+        <div id="pdfModal" class="modal">
+            <div class="modal-content">
+                <button onclick="closePdfModal()" class="absolute top-2 right-2 text-gray-600 hover:text-gray-800" aria-label="Close PDF modal">&times;</button>
+                <iframe id="pdfIframe" src=""></iframe>
+            </div>
+        </div>
+
+        <footer class="bg-gray-100 py-4 px-6 text-center text-gray-600 text-sm">
+            &copy; 2025 Quotation Management System. All rights reserved.
+        </footer>
+    </div>
+
+    <script>
+        let itemCounter = {{ quotation_data.quote_items | length or 1 }};
+
+        function addItemRow() {
+            itemCounter++;
+            const itemsDiv = document.getElementById('items');
+            const newRow = document.createElement('div');
+            newRow.className = 'item-row grid grid-cols-1 md:grid-cols-[auto,auto,auto,auto] gap-2';
+            newRow.innerHTML = `
+                <input type="number" name="quantity[]" placeholder="Qty" min="1" required class="text-sm py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-20" aria-label="Quantity" aria-required="true">
+                <input type="number" name="rate[]" placeholder="Rate" step="0.01" required class="text-sm py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-24" aria-label="Rate" aria-required="true">
+                <input type="number" name="amount[]" placeholder="Amount" step="0.01" required class="text-sm py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-24" aria-label="Amount" aria-required="true">
+                <input type="number" name="vat[]" placeholder="VAT (%)" step="0.01" class="text-sm py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-20" aria-label="VAT percentage">
+                <button type="button" onclick="this.parentNode.remove()" class="bg-red-600 text-white text-sm py-2 px-2 rounded-lg hover:bg-red-700 transition duration-200 w-10" aria-label="Remove item row">X</button>
+            `;
+            itemsDiv.appendChild(newRow);
+            updateAmountCalculations();
+        }
+
+        function updateAmountCalculations() {
+            document.querySelectorAll('.item-row').forEach(row => {
+                const qtyInput = row.querySelector('input[name="quantity[]"]');
+                const rateInput = row.querySelector('input[name="rate[]"]');
+                const amountInput = row.querySelector('input[name="amount[]"]');
+                const updateAmount = () => {
+                    const qty = parseFloat(qtyInput.value) || 0;
+                    const rate = parseFloat(rateInput.value) || 0;
+                    if (qty && rate) {
+                        amountInput.value = (qty * rate).toFixed(2);
+                    }
+                };
+                qtyInput.addEventListener('input', updateAmount);
+                rateInput.addEventListener('input', updateAmount);
+            });
+        }
+
+        function openPdfModal(url) {
+            const modal = document.getElementById('pdfModal');
+            const iframe = document.getElementById('pdfIframe');
+            iframe.src = url;
+            modal.classList.add('active');
+        }
+
+        function closePdfModal() {
+            const modal = document.getElementById('pdfModal');
+            const iframe = document.getElementById('pdfIframe');
+            iframe.src = '';
+            modal.classList.remove('active');
+        }
+
+        function initiateDownload(fileUrl) {
+            const link = document.createElement('a');
+            link.href = '/download?file=' + encodeURIComponent(fileUrl);
+            const fileName = fileUrl.split('/').pop();
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        document.addEventListener('DOMContentLoaded', updateAmountCalculations);
+    </script>
+</body>
+</html>
