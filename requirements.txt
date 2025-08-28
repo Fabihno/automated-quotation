@@ -1,2 +1,2 @@
-install flask
-install PyPDF2
+flask
+PyPDF2
