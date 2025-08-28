@@ -369,4 +369,4 @@ def index():
 
 # Run the Flask application
 if __name__ == '__main__':
-    app.run(debug=True)  # Run in debug mode for development
+    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)))  # Run in debug mode for development

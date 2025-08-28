@@ -1,5 +1,12 @@
+<<<<<<< HEAD
 gunicorn==23.0.0
 packaging==25.0
 flask
 pyPDF2
 reportlab
+=======
+flask
+PyPDF2
+gunicorn
+reportlab
+>>>>>>> 913f74d0c7c49367ec1564d5470a935d71f23dcb
